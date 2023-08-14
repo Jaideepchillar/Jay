@@ -1,45 +1,776 @@
-name: CI
+from SortFile import Sort
+import csv
+
+import random
+from LinkedListServices import LinkedList
+
+print('Welcome to the Bank! We hope you find your experience enjoyable!')
 
 
-on: [push, workflow_dispatch]
+class BankData:
+
+    _accounts = dict
+    _cardInfo = dict
+    _deletedCardInfo = dict
+    _reportedCardInfo = list
+
+    def __init__(self, accounts: dict, cardInfo: dict, deletedCardInfo: dict, reportedCardInfo: list):
+        self._accounts = accounts
+        self._cardInfo = cardInfo
+        self._deletedCardInfo = deletedCardInfo
+        self._reportedCardInfo = reportedCardInfo
+        self._creditCard = CreditCard(cardInfo, deletedCardInfo, reportedCardInfo)
+        self._suspiciousUsers = LinkedList()
+
+    def getAccounts(self):
+        return self._accounts
+
+    def setAccounts(self, accounts: dict):
+        self._accounts = accounts
+
+    def getCardInfo(self):
+        return self._cardInfo
+
+    def setCardInfo(self, cardInfo: dict):
+        self._cardInfo = cardInfo
+
+    def getDeletedCardInfo(self):
+        return self._deletedCardInfo
+
+    def setDeletedCardInfo(self, deletedCardInfo: dict):
+        self._deletedCardInfo = deletedCardInfo
+
+    def getReportedCardInfo(self):
+        return self._reportedCardInfo
+
+    def setReportedCardInfo(self, reportedCardInfo: list):
+        self._reportedCardInfo = reportedCardInfo
+
+    def sortStuff(self, accountInfo):
+        sort = Sort()
+        tempList = []
+        for i in accountInfo:
+            tempList.append(i)
+        sort.selectionSort(tempList)
+        tempDict = {}
+        for i in tempList:
+            tempDict[i] = accountInfo[i]
+        return tempDict
+
+    def suspiciousUserList(self):
+        try:
+            print('This allows the admins to keep track of users they need to keep their eye on. Think of it like a '
+                  'to-do list for banking fraud.\n')
+            suspiciousUserInput = input('Please enter the name of the suspicious user: ')
+            if suspiciousUserInput not in self._accounts:
+                raise NameError
+            else:
+                print('User found. Adding to list of suspicious users.')
+                self._suspiciousUsers.addNode(f'-{suspiciousUserInput}')
+                print('Name successfully added.\n')
+
+        except NameError:
+            print('User not found, please try again.')
+
+        except ValueError:
+            print('Please enter a valid input')
+
+    def listReported(self):
+        print(f'\nReported Cards: {len(self._reportedCardInfo)}')
+        self._reportedCardInfo = self.sortStuff(self._reportedCardInfo)
+        for x in self._reportedCardInfo:
+            print(f'-{x}')
+
+    def dataDeletedCards(self):
+        funds = []
+        for x in self._deletedCardInfo:
+            funds.append(self._deletedCardInfo[x]['Balance'])
+        print(f'Deleted cards: {len(self._deletedCardInfo)}')
+        print(f'Current funds withheld in deleted cards: {sum(funds)}\n')
+
+    def totalFundsInBank(self):
+        try:
+            total = []
+            for x in self._accounts:
+                total.append((self._accounts[x]['Balance']))
+            for x in self._cardInfo:
+                total.append((self._cardInfo[x]['Balance']))
+            print(sum(total))
+        except:
+            print('No money currently held in bank.')
+
+    def listAllAccountsInfo(self):
+        for x in self._accounts:
+            print('----------------')
+            print(x)
+            for y in self._accounts[x]:
+                print(f'     -{y}: {self._accounts[x][y]}')
+
+            if x in self._cardInfo:
+                for y in self._cardInfo[x]:
+                    print(f'     -{y}: {self._cardInfo[x][y]}')
+
+            if x in self._deletedCardInfo:
+                print(f'Deleted Card Found Under Cardholder Name {x}')
+                for y in self._deletedCardInfo[x]:
+                    print(f'     -{y}: {self._deletedCardInfo[x][y]}')
+
+            if x in self._reportedCardInfo:
+                sum = 0
+                for i in self._reportedCardInfo:
+                    if i == x:
+                        sum += 1
+                print(f'     -Reported {sum} credit cards.')
 
 
-jobs:
+    def BankDataMenu(self):
+        while True:
 
-  build:
+            print('\n>---=Bank Data Menu=---<')
+            print('1. List Reported Cards')
+            print('2. Data on Deleted Cards')
+            print('3. Total Funds in Banks')
+            print('4. List all Account Info')
+            print('5. Add to Suspicious User Index')
+            print('6. View Suspicious User Index')
+            print('7. Quit')
+
+            try:
+                tempchoice = int(input('Enter your choice: '))
+                if tempchoice > 7 or tempchoice < 1:
+                    raise ValueError
+                elif tempchoice == 1:
+                    self.listReported()
+
+                elif tempchoice == 2:
+                    self.dataDeletedCards()
+
+                elif tempchoice == 3:
+                    self.totalFundsInBank()
+
+                elif tempchoice == 4:
+                    self.listAllAccountsInfo()
+
+                elif tempchoice == 5:
+                    print('You have chosen to add to the suspicious user index.')
+                    self.suspiciousUserList()
+
+                elif tempchoice == 6:
+                    print('You have chosen to load the suspicious user index.')
+                    self._suspiciousUsers.printNode()
+
+                elif tempchoice == 7:
+                    print('Thank you for using the Bank Data Menu.\n')
+                    return None
+
+            except ValueError:
+                print('Invalid Input')
+
+    def __str__(self):
+        return 'This is the bank\'s main database'
 
 
-    runs-on: windows-latest
+class User(BankData):
+
+    def __init__(self, accounts, cardInfo, deletedCardInfo, reportedCardInfo):
+        super().__init__(accounts, cardInfo, deletedCardInfo, reportedCardInfo)
+
+    def createAccount(self):
+        # method headers (Doc Strings)
+        '''Description: This method is designed to create a new account
+                Parameters:
+                    none
+                Return:
+                    none
+        '''
+        name = input('Enter your name: ')
+        if name in self._accounts:
+            print('There is already an account with that name. Please try again.')
+        elif name == '':
+            print('Please enter a valid name.')
+        else:
+            password = input('Enter your password: ')
+            try:
+                balance = float(input('Enter your initial deposit: '))
+                self._accounts[name] = {'Balance': balance, 'Password': password}
+                print('Account created successfully.')
+            except ValueError:
+                print('Invalid Input')
+                return None
+
+    def selectAccount(self):
+        name = input('Enter your name: ')
+        if name in self._accounts:
+            password = input('Enter your password: ')
+            if password in self._accounts[name]['Password']:
+                return name
+            else:
+                print('Incorrect Password')
+                return None
+        else:
+            print('No account found with that name.')
+            return None
+
+    def deposit(self, name):
+        try:
+            amount = float(input('Enter the amount to deposit: '))
+            self._accounts[name]['Balance'] += amount
+            print(f"Deposit successful. Your new balance is: {self._accounts[name]['Balance']}")
+        except ValueError:
+            print('Invalid Input')
+
+    def withdraw(self, name):
+        try:
+            amount = float(input('Enter the amount to withdraw: '))
+            if amount > self._accounts[name]['Balance']:
+                print('Insufficient funds.')
+            else:
+                self._accounts[name]['Balance'] -= amount
+                print(f"Withdrawal successful. Your new balance is: {self._accounts[name]['Balance']}")
+        except ValueError:
+            print('Invalid Input')
+
+    def checkBalance(self, name):
+        print(f"Your current balance is: {self._accounts[name]['Balance']}")
+
+    def passwordChange(self, name):
+        newpass = input('Enter your new password: ')
+        self._accounts[name]['Password'] = newpass
+        print('Password changed successfully.')
+        return None
+
+    def Usermenu(self):
+
+        while True:
+            print('----------------------')
+            print('\nBank Management System ')
+            print('|        ----        |')
+            print('1. Make Account')
+            print('2. Check Account')
+            print('3. Withdraw')
+            print('4. Deposit')
+            print('5. Password Change')
+            print('6. Credit Card Menu')
+            print('7. Exit')
+            try:
+                choice = int(input('Enter your choice: '))
+
+                if choice == 1:
+                    print('You have chosen to create an account.')
+                    self.createAccount()
+                elif choice == 2:
+                    print('You have chosen to check your account.')
+                    name = self.selectAccount()
+                    if name:
+                        self.checkBalance(name)
+                elif choice == 3:
+                    print('You have chosen to withdraw money from your account.')
+                    name = self.selectAccount()
+                    if name:
+                        self.withdraw(name)
+                elif choice == 4:
+                    print('You have chosen to deposit money into your account.')
+                    name = self.selectAccount()
+                    if name:
+                        self.deposit(name)
+                elif choice == 5:
+                    print('You have chosen to change the password for your account.')
+                    name = self.selectAccount()
+                    if name:
+                        self.passwordChange(name)
+                elif choice == 6:
+                    print('You have chosen to access the credit card menu.\n')
+                    self.userCreditCardMenu()
+
+                elif choice == 7:
+                    print('You have chosen to end the user-access banking system. \nThank you for using our system.')
+                    return self._accounts
+                else:
+                    print('Invalid Choice.')
+            except ValueError:
+                print('Invalid Choice')
+
+    def userCreditCardMenu(self):
+
+        while True:
+            print('\n<-----Credit Card Menu----->')
+            print('1. Create Card')
+            print('2. Check Card Balance')
+            print('3. Charge Card')
+            print('4. Add to Card')
+            print('5. Change Pin')
+            print('6. View Transaction History')
+            print('7. Report a Lost or Stolen Card')
+            print('8. Quit')
+            try:
+                choice = int(input('Enter your choice: '))
+                if choice == 1:
+                    print('You have chosen to create a credit card.')
+                    name = self.selectAccount()
+                    if name:
+                        tempBal = float(self._accounts[name]['Balance'])
+                        self._accounts[name]['Balance'] = self._creditCard.createCard(name, tempBal)
+
+                    else:
+                        print('In order to make a card, an account must be used by the same name and password.')
+                elif choice == 2:
+                    print('You have chosen to check your card balance.')
+                    name = self._creditCard.selectCard()
+                    if name:
+                        print(f'Your current balance is: ${self._creditCard.get_balance(name)}')
+                elif choice == 3:
+                    print('You have chosen to charge your card.')
+                    name = self._creditCard.selectCard()
+                    if name:
+                        amount = float(input('Enter charge amount: $'))
+                        self._creditCard.charge(amount, name)
+                        self._accounts[name]['Balance'] += amount
+                        print(f'Charge successful. \nAccount balance: {self._accounts[name]["Balance"]} \n'
+                              f'Card Balance: {self._creditCard._cardInfo[name]["Balance"]}')
+                elif choice == 4:
+                    print('You have chosen to add to your account.')
+                    name = self._creditCard.selectCard()
+                    if name:
+                        amount = float(input('Enter add amount: $'))
+                        if amount > self._accounts[name]['Balance']:
+                            print('Requested amount exceeds account balance.')
+                        else:
+                            self._creditCard.addCard(amount, name, self._accounts[name]['Balance'])
+                            self._accounts[name]['Balance'] -= amount
+                            print(f'Payment successful. \nAccount balance: {self._accounts[name]["Balance"]} \n'
+                                  f'Card Balance: {self._creditCard._cardInfo[name]["Balance"]}')
+                elif choice == 5:
+                    print('You have chosen to change your pin.')
+                    name = self._creditCard.selectCard()
+                    if name:
+                        self._creditCard.changePin(name)
+                elif choice == 6:
+                    print('You have chosen to check your transaction history.')
+                    name = self._creditCard.selectCard()
+                    if name:
+                        self._creditCard.viewTransactionHistory(name)
+                elif choice == 7:
+                    print('You have chosen to report your card as lost/stolen.')
+                    name = self._creditCard.selectCard()
+                    if name:
+                        self._creditCard.reportLostOrStolenCard(name)
+                elif choice == 8:
+                    print('Thank you for using the user-access credit card menu.')
+                    break
+                else:
+                    print('Please enter a valid number.')
+            except ValueError:
+                print('Please enter a valid number.')
+
+    def __str__(self):
+        return 'This is the user access console for the bank.'
 
 
-    steps:
+class CreditCard:
+    _cardInfo = dict
+    _deletedCardInfo = dict
+    _reportedCardInfo = list
 
-    - name: Download
+    def __init__(self, cardInfo: dict, deletedCardInfo: dict, reportedCardInfo: list):
+        self._cardInfo = cardInfo
+        self._deletedCardInfo = deletedCardInfo
+        self._reportedCardInfo = reportedCardInfo
 
-      run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+    def getCardInfo(self):
+        return self._cardInfo
 
-    - name: Extract
+    def setCardInfo(self, cardInfo: dict):
+        self._cardInfo = cardInfo
 
-      run: Expand-Archive ngrok.zip
+    def getDeletedCardInfo(self):
+        return self._deletedCardInfo
 
-    - name: Auth
+    def setDeletedCardInfo(self, deletedCardInfo: dict):
+        self._deletedCardInfo = deletedCardInfo
 
-      run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+    def getReportedCardInfo(self):
+        return self._reportedCardInfo
 
-      env:
+    def setReportedCardInfo(self, reportedCardInfo: list):
+        self._reportedCardInfo = reportedCardInfo
 
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+    def createCard(self, name, accountBal):
+        if name in self._cardInfo:
+            print('There is already an account with this name.')
+            return accountBal
+        elif name in self._deletedCardInfo:
+            print('Previously deleted account with this name found.')
+            deletedPin = int(input('Please enter the previous account\'s pin to retrieve your funds: '))
+            if deletedPin == self._deletedCardInfo[name]['Pin']:
+                cardNum = random.randint(1111111111111111111, 9999999999999999999)
+                cardNum = str(cardNum)
+                cardNum = cardNum[0:4] + ' ' + cardNum[5:9] + ' ' + cardNum[10:14] + ' ' + cardNum[15:19]
+                ########################################
+                self._cardInfo[name] = {'Pin': self._deletedCardInfo[name]['Pin'],
+                                        'Balance': self._deletedCardInfo[name]['Balance'],
+                                        'Card Number': cardNum,
+                                        'Card Limit': self._deletedCardInfo[name]['Card Limit'],
+                                        'Transactions': self._deletedCardInfo[name]['Transactions']}
+                del (self._deletedCardInfo[name])
+                print(
+                    f'Funds and information retrieved. The new card number is ({cardNum}). If you would like to change '
+                    f'your pin number, please do so from the menu.')
+                print(f'Transaction to card successful. \nAccount Balance: {accountBal} '
+                      f'\nCard Balance: {self._cardInfo[name]["Balance"]}')
+                return accountBal
+        elif name == ' ':
+            print('Please enter a valid name.')
+            return accountBal
+        else:
+            try:
+                pin = (input('Please enter a valid pin (xxxx): '))
+                if len(pin) != 4:
+                    raise ValueError
+                pin = int(pin)
+                balance = float(input('Enter your initial deposit to the card: '))
+                if balance > accountBal:
+                    print('Requested initial deposit exceeds account funds.')
+                    return accountBal
+                else:
+                    transactions = [balance]
+                    ####
+                    cardNum = random.randint(1111111111111111111, 9999999999999999999)
+                    cardNum = str(cardNum)
+                    cardNum = cardNum[0:4] + ' ' + cardNum[5:9] + ' ' + cardNum[10:14] + ' ' + cardNum[15:19]
 
-    - name: Enable TS
+                    cardLimit = 1000
+                    ####
+                    self._cardInfo[name] = {'Pin': pin, 'Balance': balance, 'Card Number': cardNum,
+                                            'Card Limit': cardLimit, 'Transactions': transactions}
+                    print('Card created successfully')
+                    print(f'Transaction to card successful. \nAccount Balance: {accountBal - balance} '
+                          f'\nCard Balance: {self._cardInfo[name]["Balance"]}')
+                    return accountBal - balance
+            except ValueError:
+                print('Invalid Input')
+                return accountBal
 
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+    def selectCard(self):
+        name = input('Enter your name: ')
+        if name in self._cardInfo:
+            try:
+                pin = int(input('Enter pin: '))
+                if pin == self._cardInfo[name]['Pin']:
+                    return name
+                else:
+                    print('Incorrect Pin')
+            except ValueError:
+                print('Invalid Input')
+        else:
+            print('No cardholder found with that name')
 
-    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+    def get_balance(self, name):
 
-    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+        return sum(self._cardInfo[name]['Transactions'])
 
-    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+    def charge(self, amount, name):
+        if amount > 0:
+            if amount > self._cardInfo[name]['Card Limit']:
+                print('Requested charge amount exceeds card limit.')
+            else:
+                if amount > self._cardInfo[name]['Balance']:
+                    print('Requested charge amount exceeds card funds.')
+                else:
+                    self._cardInfo[name]['Balance'] = self._cardInfo[name]['Balance'] - amount
+                    self._cardInfo[name]['Transactions'].append(-amount)
+        else:
+            print('Please enter a valid number.')
 
-    - name: Create Tunnel
+    def addCard(self, amount, name, accountBal):
+        if amount > 0:
+            if amount > accountBal:
+                print('Requested charge amount exceeds account balance.')
+            else:
+                self._cardInfo[name]['Transactions'].append(amount)
+                self._cardInfo[name]['Balance'] = self._cardInfo[name]['Balance'] + amount
+        else:
+            print('Please enter a valid number.')
 
-      run: .\ngrok\ngrok.exe tcp 3389
+    def changePin(self, name):
+        try:
+            newPin = (input('Please enter a valid new pin (xxxx): '))
+            if len(newPin) != 4:
+                raise ValueError
+            newPin = int(newPin)
+            if self._cardInfo[name]['Pin'] == newPin:
+                raise SyntaxError
+            self._cardInfo[name]['Pin'] = newPin
+            print('Pin changed successfully')
+            return None
+        except SyntaxError:
+            print('New pin cannot be the same as old pin.')
+        except ValueError:
+            print('Please enter a valid pin.')
+
+    def viewTransactionHistory(self, name):
+        print(f'Transaction History for Card Number {self._cardInfo[name]["Card Number"]}')
+        print('-------------------------------')
+        for index, transaction in enumerate(self._cardInfo[name]['Transactions']):
+            if transaction > 0:
+                print(f'{index + 1}: Addition of ${transaction}')
+            else:
+                print(f'{index + 1}: Loss of ${abs(transaction)}')
+
+    def reportLostOrStolenCard(self, name):
+        report = input('Are you sure you want to report your card as lost or stolen? (y/n): ')
+        if report.lower() == 'y':
+            # cancel the card and issue a new one
+            self._deletedCardInfo[name] = {'Pin': self._cardInfo[name]['Pin'],
+                                           'Balance': self._cardInfo[name]['Balance'],
+                                           'Card Number': self._cardInfo[name]['Card Number'],
+                                           'Card Limit': self._cardInfo[name]['Card Limit'],
+                                           'Transactions': self._cardInfo[name]['Transactions']}
+
+            self._reportedCardInfo.append(name)
+
+            del (self._cardInfo[name])
+            print('Your card has been cancelled and a new one will be issued. Please create a new card.')
+
+    def ADMINlistCards(self):
+        print('Compiling Credit Card Database...')
+        if len(self._cardInfo) == 0:
+            print('There are no current registered cards.')
+        else:
+            for x in self._cardInfo:
+                print('----------------')
+                print(x)
+                for y in self._cardInfo[x]:
+                    print(f'     -{y}: {self._cardInfo[x][y]}')
+
+    def ADMINchangePins(self):
+        try:
+            name = input('Enter name of account being changed: ')
+            newPin = (input('Please enter a valid new pin (xxxx): '))
+            if len(newPin) != 4:
+                raise ValueError
+            newPin = int(newPin)
+            self._cardInfo[name]['Pin'] = newPin
+            print('Pin changed successfully')
+            return None
+        except ValueError:
+            print('Please enter a valid pin.')
+
+    def ADMINdeleteCard(self):
+        name = input('Enter name of account being deleted: ')
+        if name in self._cardInfo:
+            del (self._cardInfo[name])
+            print('Successfully deleted')
+        else:
+            print(f'No account with that name found.')
+
+    def ADMINtransferMoney(self):
+        try:
+            name = input('Enter name of account being transferred: ')
+            if name in self._cardInfo:
+                newName = input('Enter name of account getting money transferred to it: ')
+                if name == newName:
+                    print('Cannot transfer to the same account.')
+                elif newName in self._cardInfo:
+                    amount = float(input('Enter amount being transferred: '))
+                    if amount <= self._cardInfo[name]['Balance']:
+
+                        self._cardInfo[name]['Balance'] -= amount
+                        self._cardInfo[newName]['Balance'] += amount
+                    else:
+                        print(f'Cardholder account {name} does not have {amount} funds in their account.')
+                else:
+                    raise NameError
+            else:
+                raise NameError
+        except NameError:
+            print('Name not found')
+        except ValueError:
+            print('Invalid Input')
+
+    def __str__(self):
+        return 'This is the credit card database for the bank.'
+
+
+class Admin(User):
+
+    def __init__(self, accounts, cardInfo, deletedCardInfo, reportedCardInfo):
+        super().__init__(accounts, cardInfo, deletedCardInfo, reportedCardInfo)
+
+    def listAccounts(self):
+        # method headers (Doc Strings)
+        '''Description: This method is designed to list the accounts in self._accounts
+                Parameters:
+                    none
+                Return:
+                    nothing
+        '''
+        print('Compiling database...')
+
+        if len(self._accounts) == 0:
+            print('No accounts currently registered.')
+        else:
+            for x in self._accounts:
+                print('----------------')
+                print(x)
+                for y in self._accounts[x]:
+                    print(f'     -{y}: {self._accounts[x][y]}')
+
+
+    def accountPasswordChange(self):
+        accountPass = input('Please enter the name of the account you are editing: ')
+        if accountPass in self._accounts:
+            newpassword = input('What is the new password for user ' + accountPass + ': ')
+            print(f'Requested Password Chance for User "{accountPass}"'
+                  f'\nFrom "{self._accounts[accountPass]["Password"]}" to "{newpassword}."')
+            self._accounts[accountPass]['Password'] = newpassword
+            print(f'Password Chance Successful for User "{accountPass}."')
+        else:
+            print('Invalid User')
+
+    def deleteAccount(self):
+        accountName = input('Please enter the name of the account you want to delete: ')
+        if accountName in self._accounts:
+            if accountName in self._cardInfo:
+                del self._cardInfo[accountName]
+                del self._accounts[accountName]
+                print(f'The account "{accountName}" and their credit card has been suuccessfully deleted.')
+            else:
+                del self._accounts[accountName]
+                print(
+                    f'The account "{accountName}" has been successfully deleted. They did not have a credit card to delete')
+        else:
+            print(f'Could not find account "{accountName}" in database.')
+
+    def Adminmenu(self):
+        while True:
+            print('\n----------------------')
+            print('Banking Administration System ')
+            print('|        ----        |')
+            print('1. List Accounts')
+            print('2. Account Password Change')
+            print('3. Make New Accounts')
+            print('4. Delete Accounts')
+            print('5. Administrative Credit Card Menu')
+            print('6. Quit Admin Menu')
+
+            try:
+                admin = int(input('Enter your choice: '))
+                if admin > 6 or admin < 1:
+                    raise ValueError
+            except ValueError:
+                print('Please enter a valid number.')
+                continue
+
+            if admin == 1:
+                print('You have chosen to list all current accounts...')
+                self._accounts = self.sortStuff(self._accounts)
+                self.listAccounts()
+
+            elif admin == 2:
+                print('You have chosen to access the Account Password Management System.')
+                self.accountPasswordChange()
+
+            elif admin == 3:
+                print('You have chosen to make a new account.')
+                self.createAccount()
+
+            elif admin == 4:
+                print('You have chosen to delete an account from the database.')
+                self.deleteAccount()
+
+            elif admin == 5:
+                print('You have chosen to access the administrative credit card menu.')
+                self.adminCreditCardMenu()
+
+            elif admin == 6:
+                print('You have chosen to end the admin-access banking system. \nThank you for using our system.')
+                return self._accounts
+
+    def adminCreditCardMenu(self):
+        while True:
+            print('<-----Administrator Credit Card Menu----->')
+            print('1. List All Registered Cards')
+            print('2. Change a Card Pin')
+            print('3. Delete a Card')
+            print('4. Transfer a Card\'s Funds')
+            print('5. Quit')
+            try:
+                choice = int(input('Enter your choice: '))
+                if choice == 1:
+                    print('You have chosen to list all registered cards.')
+                    self._cardInfo = self.sortStuff(self._cardInfo)
+                    self._creditCard.ADMINlistCards()
+                elif choice == 2:
+                    print('You have chosen to change a card pin.')
+                    self._creditCard.ADMINchangePins()
+                elif choice == 3:
+                    print('You have chosen to delete a card.')
+                    self._creditCard.ADMINdeleteCard()
+                elif choice == 4:
+                    print('You have chosen to transfer a card\'s funds')
+                    self._creditCard.ADMINtransferMoney()
+                elif choice == 5:
+                    print('Thank you for using the admin-access credit card system.')
+                    break
+                else:
+                    print('Please enter a valid number.')
+            except ValueError:
+                print('Please enter a valid number.')
+
+    def __str__(self):
+        return 'This is the Admin control console for the bank.'
+
+
+class menuEntry(BankData):
+
+    def __init__(self, accounts, cardInfo, deletedCardInfo, reportedCardInfo):
+        super().__init__(accounts, cardInfo, deletedCardInfo, reportedCardInfo)
+        self._user = User(accounts, cardInfo, deletedCardInfo, reportedCardInfo)
+        self._admin = Admin(accounts, cardInfo, deletedCardInfo, reportedCardInfo)
+        self._bankData = BankData(accounts, cardInfo, deletedCardInfo, reportedCardInfo)
+
+    def mainMenu(self):
+        while True:
+            print('\nMAIN BANK MENU')
+            print('1. User Access')
+            print('2. Admin Access')
+            print('3. Bank Data')
+            print('4. Quit')
+
+            try:
+                tempchoice = int(input('Please enter the login you are using: '))
+                if tempchoice > 4 or tempchoice < 1:
+                    raise ValueError
+                elif tempchoice == 1:
+                    self._user.Usermenu()
+
+                elif tempchoice == 2:
+                    adminAccessPass = input('Please enter the admin-account access password ("hehe"): ')
+                    if adminAccessPass == 'hehe':
+                        self._admin.Adminmenu()
+                    else:
+                        print('Incorrect Password')
+                elif tempchoice == 3:
+                    adminAccessPass = input('Please enter the admin-account access password ("hehe"): ')
+                    if adminAccessPass == 'hehe':
+                        self._bankData.BankDataMenu()
+                    else:
+                        print('Incorrect Password')
+                elif tempchoice == 4:
+                    print('Thank you for using the banking system. We hope you found your experience enjoyable.')
+                    break
+            except ValueError:
+                print('Invalid Input')
+
+    def __str__(self):
+        return 'This is the access-point for the main bank\'s console.'
+
+
+accounts = {}
+cardInfo = {}
+deletedCardInfo = {}
+reportedCardInfo = []
+
+menuEntry = menuEntry(accounts, cardInfo, deletedCardInfo, reportedCardInfo)
+menuEntry.mainMenu()
+
